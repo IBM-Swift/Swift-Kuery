@@ -118,7 +118,7 @@ public enum QueryResult {
                 guard let error = error else {
                     // We have run out of rows so need to return the results and explicitly close the result set allowing the release of the underlying connection.
                     resultSet.done()
-                    return onCompletion((result, nil))
+                    return onCompletion((result ?? [], nil))
                 }
                 resultSet.done()
                 return onCompletion((nil, QueryError.noResult("Error fetching row: \(error.localizedDescription)")))
