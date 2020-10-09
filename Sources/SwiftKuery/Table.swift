@@ -411,4 +411,15 @@ open class Table: Buildable {
         }
         return true
     }
+
+    /**
+     Function to find and return a column by column name.
+
+     - Parameter name: The columns name
+     - Returns: The `Column` with the given name.
+    */
+    public func column(name: String) -> Column? {
+        return columns.first(where: {$0.name == name})
+    }
+
 }
