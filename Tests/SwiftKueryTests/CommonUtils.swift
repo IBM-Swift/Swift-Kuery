@@ -41,17 +41,26 @@ class TestConnection: Connection {
         case returnValue
     }
 
-    init(result: Result, withDeleteRequiresUsing: Bool = false, withUpdateRequiresFrom: Bool = false, createAutoIncrement: ((String, Bool) -> String)? = nil) {
-        self.queryBuilder = QueryBuilder(withDeleteRequiresUsing: withDeleteRequiresUsing, withUpdateRequiresFrom: withUpdateRequiresFrom, columnBuilder: TestColumnBuilder())
+    init(result: Result,
+         withDeleteRequiresUsing: Bool = false,
+         withUpdateRequiresFrom: Bool = false,
+         createAutoIncrement: ((String, Bool) -> String)? = nil,
+         addUnsignedIntegers: Bool = false,
+         addTinyIntegers: Bool = false) {
+        self.queryBuilder = QueryBuilder(withDeleteRequiresUsing: withDeleteRequiresUsing,
+                                         withUpdateRequiresFrom: withUpdateRequiresFrom,
+                                         columnBuilder: TestColumnBuilder(),
+                                         addUnsignedIntegers: addUnsignedIntegers,
+                                         addTinyIntegers: addTinyIntegers)
         self.result = result
     }
-    
+
     func connect(onCompletion: @escaping (QueryResult) -> ()) {}
 
     func connectSync() -> QueryResult { return .successNoData }
-    
+
     public var isConnected: Bool { return true }
-    
+
     func closeConnection() {}
 
     func execute(query: Query, onCompletion: @escaping ((QueryResult) -> ())) {
@@ -172,8 +181,17 @@ func createConnection(_ result: TestConnection.Result) -> TestConnection {
     return TestConnection(result: result)
 }
 
-func createConnection(withDeleteRequiresUsing: Bool = false, withUpdateRequiresFrom: Bool = false, createAutoIncrement: ((String, Bool) -> String)? = nil) -> TestConnection {
-    return TestConnection(result: .returnEmpty, withDeleteRequiresUsing: withDeleteRequiresUsing, withUpdateRequiresFrom: withUpdateRequiresFrom, createAutoIncrement: createAutoIncrement)
+func createConnection(withDeleteRequiresUsing: Bool = false,
+                      withUpdateRequiresFrom: Bool = false,
+                      createAutoIncrement: ((String, Bool) -> String)? = nil,
+                      addUnsignedIntegers: Bool = false,
+                      addTinyIntegers: Bool = false) -> TestConnection {
+    return TestConnection(result: .returnEmpty,
+                          withDeleteRequiresUsing: withDeleteRequiresUsing,
+                          withUpdateRequiresFrom: withUpdateRequiresFrom,
+                          createAutoIncrement: createAutoIncrement,
+                          addUnsignedIntegers: addUnsignedIntegers,
+                          addTinyIntegers: addTinyIntegers)
 }
 
 // Dummy class for test framework

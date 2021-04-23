@@ -1,12 +1,12 @@
 /**
  Copyright IBM Corporation 2017
- 
+
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
- 
+
  http://www.apache.org/licenses/LICENSE-2.0
- 
+
  Unless required by applicable law or agreed to in writing, software
  distributed under the License is distributed on an "AS IS" BASIS,
  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -82,6 +82,21 @@ public struct Timestamp: SQLDataType {
     }
 }
 
+extension Int8: SQLDataType {
+    /// Return database specific representation of the int8 type using `QueryBuilder`.
+    ///
+    /// This returns the 'tinyint' value if supported, otherwise, it returns the `Int16` representation.
+    ///
+    /// - Parameter queryBuilder: The QueryBuilder to use.
+    /// - Returns: A String representation of the type.
+    public static func create(queryBuilder: QueryBuilder) -> String {
+        if queryBuilder.addTinyIntegers {
+            return "tinyint"
+        }
+        return Int16.create(queryBuilder: queryBuilder)
+    }
+}
+
 extension Int16: SQLDataType {
     /// Return database specific representation of the int16 type using `QueryBuilder`.
     ///
@@ -103,12 +118,74 @@ extension Int32: SQLDataType {
 }
 
 extension Int64: SQLDataType {
-    /// Return database specific representation of the int32 type using `QueryBuilder`.
+    /// Return database specific representation of the int64 type using `QueryBuilder`.
     ///
     /// - Parameter queryBuilder: The QueryBuilder to use.
     /// - Returns: A String representation of the type.
     public static func create(queryBuilder: QueryBuilder) -> String {
         return "bigint"
+    }
+}
+
+extension QueryBuilder {
+    /// Local extension to return the `unsigned` or not suffix when creating the query.
+    fileprivate var unsignedSuffix: String {
+        self.addUnsignedIntegers ? " unsigned" : ""
+    }
+}
+
+extension UInt8: SQLDataType {
+    /// Return database specific representation of the uint8 type using `QueryBuilder`.
+    ///
+    /// This returns:
+    ///  - the 'tinyint unsigned' value if `addTinyIntegers = true` and `addUnsignedIntegers = true`;
+    ///  - the 'smallint unsigned' value if `addTinyIntegers = false` and `addUnsignedIntegers = true`;
+    ///  - the 'tinyint' value if `addTinyIntegers = true` and `addUnsignedIntegers = false`;
+    ///  - the 'smalint' value if `addTinyIntegers = false` and `addUnsignedIntegers = false`.
+    ///
+    /// - Parameter queryBuilder: The QueryBuilder to use.
+    /// - Returns: A String representation of the type.
+    public static func create(queryBuilder: QueryBuilder) -> String {
+        if queryBuilder.addTinyIntegers {
+            return Int8.create(queryBuilder: queryBuilder) + queryBuilder.unsignedSuffix
+        }
+        return Int16.create(queryBuilder: queryBuilder) + queryBuilder.unsignedSuffix
+    }
+}
+
+extension UInt16: SQLDataType {
+    /// Return database specific representation of the uint16 type using `QueryBuilder`.
+    ///
+    /// This returns the `smallint unsigned` if the value is supported otherwise the `Int16` representation.
+    ///
+    /// - Parameter queryBuilder: The QueryBuilder to use.
+    /// - Returns: A String representation of the type.
+    public static func create(queryBuilder: QueryBuilder) -> String {
+        return Int16.create(queryBuilder: queryBuilder) + queryBuilder.unsignedSuffix
+    }
+}
+
+extension UInt32: SQLDataType {
+    /// Return database specific representation of the uint32 type using `QueryBuilder`.
+    ///
+    /// This returns the `integer unsigned` if the value is supported otherwise the `Int32` representation.
+    ///
+    /// - Parameter queryBuilder: The QueryBuilder to use.
+    /// - Returns: A String representation of the type.
+    public static func create(queryBuilder: QueryBuilder) -> String {
+        return Int32.create(queryBuilder: queryBuilder) + queryBuilder.unsignedSuffix
+    }
+}
+
+extension UInt64: SQLDataType {
+    /// Return database specific representation of the uint64 type using `QueryBuilder`.
+    ///
+    /// This returns the `bigint unsigned` if the value is supported otherwise the `Int64` representation.
+    ///
+    /// - Parameter queryBuilder: The QueryBuilder to use.
+    /// - Returns: A String representation of the type.
+    public static func create(queryBuilder: QueryBuilder) -> String {
+        return Int64.create(queryBuilder: queryBuilder) + queryBuilder.unsignedSuffix
     }
 }
 

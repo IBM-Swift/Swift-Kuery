@@ -1,12 +1,12 @@
 /**
  Copyright IBM Corporation 2017, 2018, 2019
- 
+
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
- 
+
  http://www.apache.org/licenses/LICENSE-2.0
- 
+
  Unless required by applicable law or agreed to in writing, software
  distributed under the License is distributed on an "AS IS" BASIS,
  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,21 +18,25 @@ import XCTest
 
 @testable import SwiftKuery
 class TestSchema: XCTestCase {
-    
+
     static var allTests: [(String, (TestSchema) -> () throws -> Void)] {
         return [
             ("testMultipleForeignKeys", testMultipleForeignKeys),
             ("testCreateTable", testCreateTable),
+            ("testCreateTableTinySignedInteger", testCreateTableTinySignedInteger),
+            ("testCreateTableTinyUnsignedInteger", testCreateTableTinyUnsignedInteger),
+            ("testCreateTableUnsignedInteger", testCreateTableUnsignedInteger),
+            ("testCreateTableUnsignedNoTinyInteger", testCreateTableUnsignedNoTinyInteger),
         ]
     }
-    
+
     class Table1: Table {
         let tableName = "table1"
         let a = Column("a", String.self, primaryKey: true, defaultValue: "qiwi", collate: "en_US")
         let b = Column("b", Int32.self, autoIncrement: true)
         let c = Column("c", Double.self, defaultValue: 4.95, check: "c > 0")
     }
-    
+
     class Table2: Table {
         let tableName = "table2"
         let a = Column("a", Varchar.self, primaryKey: false, unique: false)
@@ -43,20 +47,20 @@ class TestSchema: XCTestCase {
         let f = Column("f", Timestamp.self)
         let g = Column("g", MySQLType.self, length: 15)
     }
-    
+
     struct MySQLType: SQLDataType {
         public static func create(queryBuilder: QueryBuilder) -> String {
             return "mySQLType"
         }
     }
-    
+
     class Table3: Table {
         let tableName = "table3"
         let a = Column("a", String.self, primaryKey: true, defaultValue: "qiwi", collate: "en_US")
         let b = Column("b", Int32.self, autoIncrement: true, primaryKey: true)
         let c = Column("c", Double.self, defaultValue: 4.95, check: "c > 0")
     }
-    
+
     class Table4: Table {
         let tableName = "table4"
         let a = Column("a", Char.self, length: 20)
@@ -65,7 +69,7 @@ class TestSchema: XCTestCase {
         let d = Column("d", Bool.self)
         let e = Column("e", Time.self)
     }
-    
+
     class Table5: Table {
         let tableName = "table5"
         let a = Column("a", Char.self)
@@ -75,6 +79,24 @@ class TestSchema: XCTestCase {
     class Table6: Table {
         let tableName = "table6"
         let a = Column("a", String.self, defaultValue: nil, nullDefaultValue: true)
+    }
+
+    class TableTiny: Table {
+        let tableName = "tableTiny"
+        let tiny = Column("tiny", Int8.self)
+    }
+
+    class TableTinyUnsigned: Table {
+        let tableName = "tableTinyUnsigned"
+        let tiny = Column("tiny", UInt8.self)
+    }
+
+    class TableUnsigned: Table {
+        let tableName = "tableUnsigned"
+        let tiny = Column("tiny", UInt8.self)
+        let small = Column("small", UInt16.self)
+        let int = Column("int", UInt32.self)
+        let big = Column("big", UInt64.self)
     }
 
     func testMultipleForeignKeys() {
@@ -178,12 +200,12 @@ class TestSchema: XCTestCase {
         createStmt = createTable(t4.primaryKey(t4.b).foreignKey(t4.a, references: t2.b), connection: connection)
         expectedCreateStmt = "CREATE TABLE \"table4\" (\"a\" char(20), \"b\" bigint, \"c\" real, \"d\" boolean, \"e\" time, PRIMARY KEY (\"b\"), FOREIGN KEY (\"a\") REFERENCES \"table2\"(\"b\"))"
         XCTAssertEqual(createStmt, expectedCreateStmt, "\nError in table creation: \n\(createStmt) \ninstead of \n\(expectedCreateStmt)")
-        
+
         t4 = Table4()
         error = createBadTable(t4.primaryKey(t1.b, t1.c), connection: connection)
         expectedError = "Primary key contains columns from another table. "
         XCTAssertEqual(error, expectedError)
-        
+
         t1 = Table1()
         t4 = Table4()
         error = createBadTable(t4.foreignKey(t1.b, references: t1.c), connection: connection)
@@ -194,7 +216,7 @@ class TestSchema: XCTestCase {
         error = createBadTable(t4.foreignKey([t4.b, t4.a], references: [t2.a, t1.a]), connection: connection)
         expectedError = "Foreign key references columns from more than one table. "
         XCTAssertEqual(error, expectedError)
-        
+
         t4 = Table4()
         error = createBadTable(t4.foreignKey([t4.b, t4.a], references: [t2.a]), connection: connection)
         expectedError = "Invalid definition of foreign key. "
@@ -226,8 +248,60 @@ class TestSchema: XCTestCase {
         expectedCreateStmt = "CREATE TABLE \"table6\" (\"a\" text DEFAULT NULL)"
         XCTAssertEqual(createStmt, expectedCreateStmt, "\nError in table creation: \n\(createStmt) \ninstead of \n\(expectedCreateStmt)")
     }
-    
-    
+
+    func testCreateTableTinySignedInteger() {
+        let connectionWithTiny = createConnection(addUnsignedIntegers: false, addTinyIntegers: true)
+        let connectionWithoutTiny = createConnection(addUnsignedIntegers: false, addTinyIntegers: false)
+
+        let tinyTable = TableTiny()
+        var createStmt = createTable(tinyTable, connection: connectionWithTiny)
+        var expectedCreateStmt = "CREATE TABLE \"tableTiny\" (\"tiny\" tinyint)"
+        XCTAssertEqual(createStmt, expectedCreateStmt, "\nError in table creation: \n\(createStmt) \ninstead of \n\(expectedCreateStmt)")
+        createStmt = createTable(tinyTable, connection: connectionWithoutTiny)
+        expectedCreateStmt = "CREATE TABLE \"tableTiny\" (\"tiny\" smallint)"
+        XCTAssertEqual(createStmt, expectedCreateStmt, "\nError in table creation: \n\(createStmt) \ninstead of \n\(expectedCreateStmt)")
+    }
+
+    func testCreateTableTinyUnsignedInteger() {
+        let connectionWithTiny = createConnection(addUnsignedIntegers: true, addTinyIntegers: true)
+        let connectionWithoutTiny = createConnection(addUnsignedIntegers: true, addTinyIntegers: false)
+
+        let tinyTable = TableTinyUnsigned()
+        var createStmt = createTable(tinyTable, connection: connectionWithTiny)
+        var expectedCreateStmt = "CREATE TABLE \"tableTinyUnsigned\" (\"tiny\" tinyint unsigned)"
+        XCTAssertEqual(createStmt, expectedCreateStmt, "\nError in table creation: \n\(createStmt) \ninstead of \n\(expectedCreateStmt)")
+        createStmt = createTable(tinyTable, connection: connectionWithoutTiny)
+        expectedCreateStmt = "CREATE TABLE \"tableTinyUnsigned\" (\"tiny\" smallint unsigned)"
+        XCTAssertEqual(createStmt, expectedCreateStmt, "\nError in table creation: \n\(createStmt) \ninstead of \n\(expectedCreateStmt)")
+    }
+
+    func testCreateTableUnsignedInteger() {
+        let connectionSigned = createConnection(addUnsignedIntegers: true, addTinyIntegers: true)
+        let connectionUnsigned = createConnection(addUnsignedIntegers: false, addTinyIntegers: true)
+
+        let unsignedTable = TableUnsigned()
+        var createStmt = createTable(unsignedTable, connection: connectionSigned)
+        var expectedCreateStmt = "CREATE TABLE \"tableUnsigned\" (\"tiny\" tinyint unsigned, \"small\" smallint unsigned, \"int\" integer unsigned, \"big\" bigint unsigned)"
+        XCTAssertEqual(createStmt, expectedCreateStmt, "\nError in table creation: \n\(createStmt) \ninstead of \n\(expectedCreateStmt)")
+        createStmt = createTable(unsignedTable, connection: connectionUnsigned)
+        expectedCreateStmt = "CREATE TABLE \"tableUnsigned\" (\"tiny\" tinyint, \"small\" smallint, \"int\" integer, \"big\" bigint)"
+        XCTAssertEqual(createStmt, expectedCreateStmt, "\nError in table creation: \n\(createStmt) \ninstead of \n\(expectedCreateStmt)")
+    }
+
+    func testCreateTableUnsignedNoTinyInteger() {
+        let connectionSignedNoTiny = createConnection(addUnsignedIntegers: true, addTinyIntegers: false)
+        let connectionUnsignedNoTiny = createConnection(addUnsignedIntegers: false, addTinyIntegers: false)
+
+        let unsignedTable = TableUnsigned()
+        var createStmt = createTable(unsignedTable, connection: connectionSignedNoTiny)
+        var expectedCreateStmt = "CREATE TABLE \"tableUnsigned\" (\"tiny\" smallint unsigned, \"small\" smallint unsigned, \"int\" integer unsigned, \"big\" bigint unsigned)"
+        XCTAssertEqual(createStmt, expectedCreateStmt, "\nError in table creation: \n\(createStmt) \ninstead of \n\(expectedCreateStmt)")
+        createStmt = createTable(unsignedTable, connection: connectionUnsignedNoTiny)
+        expectedCreateStmt = "CREATE TABLE \"tableUnsigned\" (\"tiny\" smallint, \"small\" smallint, \"int\" integer, \"big\" bigint)"
+        XCTAssertEqual(createStmt, expectedCreateStmt, "\nError in table creation: \n\(createStmt) \ninstead of \n\(expectedCreateStmt)")
+    }
+
+
     public func createAutoIncrement(_ type: String, _: Bool) -> String {
         switch type {
         case "smallint":
@@ -240,7 +314,7 @@ class TestSchema: XCTestCase {
             return ""
         }
     }
-    
+
     private func createTable(_ table: Table, connection: Connection) -> String {
         do {
             let stmt = try table.description(connection: connection)
@@ -251,7 +325,7 @@ class TestSchema: XCTestCase {
             return ""
         }
     }
-    
+
     private func createBadTable(_ table: Table, connection: Connection) -> String {
         do {
             let stmt = try table.description(connection: connection)
