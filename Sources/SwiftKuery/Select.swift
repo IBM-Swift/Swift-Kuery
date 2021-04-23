@@ -54,6 +54,10 @@ public struct Select: Query {
     
     /// The SQL UNION clauses.
     public private (set) var unions: [Union]?
+
+    /// A boolean indicating whether the selected values have to be a COUNT function.
+    /// If true, corresponds to the SQL SELECT COUNT statement.
+    public private (set) var countOnly: Bool = false
     
     /// The SQL JOIN, ON and USING clauses.
     /// ON clause can be represented as `Filter` or a `String` containing raw SQL.
@@ -132,10 +136,18 @@ public struct Select: Query {
         }
         
         if let fields = fields, fields.count != 0 {
-            result += try "\(fields.map { try $0.build(queryBuilder: queryBuilder) }.joined(separator: ", "))"
+            if countOnly, fields.count == 1 {
+                result += try "COUNT(\(fields[0].build(queryBuilder: queryBuilder)))"
+            } else {
+                result += try "\(fields.map { try $0.build(queryBuilder: queryBuilder) }.joined(separator: ", "))"
+            }
         }
         else {
-            result += "*"
+            if countOnly {
+                result += "COUNT(id)"
+            } else {
+                result += "*"
+            }
         }
         
         result += " FROM "
@@ -189,6 +201,18 @@ public struct Select: Query {
 
         result = Utils.updateParameterNumbers(query: result, queryBuilder: queryBuilder)
         return result
+    }
+
+    /// Create a SELECT COUNT query.
+    ///
+    /// - Parameter field: A `Field`s use to count. If not set, the "id" field will be used if it exists.
+    /// - Parameter from: The table to select from.
+    /// - Returns: A new instance of Select with `countOnly` flag set.
+    public static func count(_ field: Field? = nil, from table: Table) -> Select {
+        let fields = field != nil ? [field!] : []
+        var selectQuery = Select(fields: fields, from: [table])
+        selectQuery.countOnly = true
+        return selectQuery
     }
 
     /// Create a SELECT DISTINCT query.

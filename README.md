@@ -520,6 +520,14 @@ let query = Select(from: t1)
 
 &nbsp;
 
+__SELECT COUNT(t1.a) FROM t1;__
+
+```swift
+let query = Select.count(t1.a, from: t1)
+```
+
+&nbsp;
+
 #### Queries with parameters:                         
 **Note**: Named parameters are supported for all databases, even for those that do not support named parameters (e.g. PostgreSQL).
 

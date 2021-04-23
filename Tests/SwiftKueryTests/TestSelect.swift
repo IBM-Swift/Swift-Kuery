@@ -23,6 +23,7 @@ class TestSelect: XCTestCase {
         return [
             ("testSelect", testSelect),
             ("testSelectWith", testSelectWith),
+            ("testSelectCount", testSelectCount),
         ]
     }
     
@@ -211,5 +212,20 @@ class TestSelect: XCTestCase {
         } catch {
             XCTFail("Other than syntax error.")
         }
+    }
+
+    func testSelectCount() {
+        let t = MyTable()
+        let connection = createConnection()
+        
+        var s = Select.count(from: t)
+        var kuery = connection.descriptionOf(query: s)
+        var query = "SELECT COUNT(id) FROM \"tableSelect\""
+        XCTAssertEqual(kuery, query, "\nError in query construction: \n\(kuery) \ninstead of \n\(query)")
+
+        s = Select.count(t.a, from: t)
+        kuery = connection.descriptionOf(query: s)
+        query = "SELECT COUNT(\"tableSelect\".\"a\") FROM \"tableSelect\""
+        XCTAssertEqual(kuery, query, "\nError in query construction: \n\(kuery) \ninstead of \n\(query)")
     }
 }
