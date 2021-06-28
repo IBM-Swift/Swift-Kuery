@@ -1,12 +1,12 @@
 /**
  Copyright IBM Corporation 2016, 2017
- 
+
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
- 
+
  http://www.apache.org/licenses/LICENSE-2.0
- 
+
  Unless required by applicable law or agreed to in writing, software
  distributed under the License is distributed on an "AS IS" BASIS,
  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,7 +17,7 @@
 import Foundation
 
 struct Utils {
-    
+
     static func packType(_ item: Any) -> String {
         switch item {
         case let val as String:
@@ -28,7 +28,7 @@ struct Utils {
             return String(describing: item)
         }
     }
-    
+
     static func packType(_ item: Any, queryBuilder: QueryBuilder) throws -> String {
         switch item {
         case let val as String:
@@ -48,7 +48,7 @@ struct Utils {
             return val == "nil" ? "NULL" : val
         }
     }
-        
+
     static func packName(_ name: String, queryBuilder: QueryBuilder) -> String {
         var result = name
         let identifierQuoteCharacter = queryBuilder.substitutions[QueryBuilder.QuerySubstitutionNames.identifierQuoteCharacter.rawValue]
@@ -57,7 +57,7 @@ struct Utils {
         }
         return result
     }
-    
+
     static func updateParameterNumbers(query: String, queryBuilder: QueryBuilder) -> String {
         let marker = queryBuilder.substitutions[QueryBuilder.QuerySubstitutionNames.numberedParameter.rawValue]
         if !queryBuilder.addNumbersToParameters {
@@ -68,7 +68,8 @@ struct Utils {
         var range = inputQuery.range(of: Parameter.numberedParameterMarker)
         var index = 1
         while let _range = range {
-            resultQuery += inputQuery[..<_range.lowerBound] + marker + "\(index)"
+            resultQuery += inputQuery[..<_range.lowerBound] + marker
+            resultQuery += "\(index)"
             inputQuery = String(inputQuery[_range.upperBound...])
 
             index += 1
@@ -78,7 +79,7 @@ struct Utils {
         resultQuery += inputQuery
         return resultQuery
     }
-    
+
     static func convertNamedParametersToNumbered(query: String, queryBuilder: QueryBuilder) -> (String, [String:[Int]], Int) {
         var resultQuery = ""
         var nameToNumber = [String:[Int]]()
